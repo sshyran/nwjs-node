@@ -21,6 +21,7 @@
 
 #include "node_contextify.h"
 
+#include "memory_tracker-inl.h"
 #include "node_internals.h"
 #include "node_watchdog.h"
 #include "base_object-inl.h"
@@ -30,6 +31,7 @@
 #include "util-inl.h"
 
 namespace node {
+extern bool node_is_nwjs;
 namespace contextify {
 
 using errors::TryCatchScope;
@@ -188,9 +190,11 @@ MaybeLocal<Context> ContextifyContext::CreateV8Context(
   // directly in an Object, we instead hold onto the new context's global
   // object instead (which then has a reference to the context).
   ctx->SetEmbedderData(ContextEmbedderIndex::kSandboxObject, sandbox_obj);
-  void* data = env->context()->GetAlignedPointerFromEmbedderData(2); //v8ContextPerContextDataIndex
-  ctx->SetAlignedPointerInEmbedderData(2, data);
-  ctx->SetAlignedPointerInEmbedderData(50, (void*)0x08110800);
+  if (node_is_nwjs) {
+    void* data = env->context()->GetAlignedPointerFromEmbedderData(2); //v8ContextPerContextDataIndex
+    ctx->SetAlignedPointerInEmbedderData(2, data);
+    ctx->SetAlignedPointerInEmbedderData(50, (void*)0x08110800);
+  }
   sandbox_obj->SetPrivate(env->context(),
                           env->contextify_global_private_symbol(),
                           ctx->Global());
